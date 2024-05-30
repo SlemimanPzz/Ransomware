@@ -216,7 +216,15 @@ SwIDAQAB
         }
     };
 
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)
+        .expect("Failed to read line");
     println!("{:?}", current_exe_path);
+
+    let mut input = String::new();
+    
+    io::stdin().read_line(&mut input)
+        .expect("Failed to read line");
 
     if let Err(e) = fs::copy(&current_exe_path, &dest_dir) {
         eprintln!("Error copying file: {}", e);
