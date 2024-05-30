@@ -13,3 +13,5 @@ rand_core = { version = "0.6.4", features = ["getrandom"] }
 static_vcruntime = "2.0"
 rand = "0.8.5"
 rsa = "0.9.6"
+wallpaper = "3.2.0"
+winapi = "0.3.9"

