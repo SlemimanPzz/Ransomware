@@ -3,6 +3,7 @@ pub mod build;
 use std::fs::{File, remove_file};
 use std::io::{BufWriter, Read, Write};
 
+use rsa::pkcs8::DecodePublicKey;
 use rsa::Pkcs1v15Encrypt;
 use rsa::{RsaPublicKey, pkcs1::DecodeRsaPublicKey};
 
@@ -147,21 +148,16 @@ fn main() {
     let pass = generate_random_string(20);
 
     let pem = "-----BEGIN PUBLIC KEY-----
-MIICITANBgkqhkiG9w0BAQEFAAOCAg4AMIICCQKCAgB5OsRTqlZyDWrtA4eWiqsq
-0ylZChWRQy8jY6CW4iTV6rFokdbv+dUNmSAEc1zjwh1boJ5vmbHJvE678tgjb7de
-b7pvz9gZ9MkpSH+Y9GCDBYfDZ8RZeaip8iXw0uUsVRX+zszYnPvDJL6LagvH0nXC
-IyNDt6e3Jbrqir9TrBTFqfIcdC/VK3KUtlmEc9ddvDOPQgssYxlmvUTq6vnHcIGJ
-P44xOmq9i+kLNSfkNKqvz0mgw47vwtew7pfTBsv374RAW34fQGXY9aKPu+1hA4o8
-9zt6CUz/sEwp0yasx5JXTsSgoxO5p9LaQkqChDhra1PdZKx+4ffgtlrv4wBsE77Y
-IMGgJ5JZ5A+SuLFO7W4dEU0Z2efjlkc9LZOOO9ftTOTQkwqvI7k61r1ny1KnYak+
-e2Sxyj85SbOxhIJ6uPtxythMF7WVhjt/6D+CqDsqhAO+b5tak28eM2AZsfWooYSm
-hKl1stVsvBY9GxSt0kv/nxKTkmkR4xx6WSxGiYyPVW0nv2w1KhPo0wMyeY9SO9xO
-dD+mK8dE6gzZKEmhYyDDqo4GxNq7zcuzli2DcyJRM0dlM4l790/sPwaGOAiZ+yWo
-Ee0dgWcIEDLfOxn1tZiuiNQy5Z3CiRkoVlZqfBnDJG9dd2zYJRkEA1IJSUYQyGGh
-PpeQB5AFqhJgbOr6L07eCwIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlpnmNvyemuON6QMsVZZX
+29vXAc0rapY0XBqN1qdzf/UoeBDV5VYMh+E4aq0XhDDHEQCLkHmoLgpuP2mVnX3O
+P/qNDOuNF2yIMQqRThQ3bTjAQa5MurgWBfZOU8up+RYAD82Lc50amIIYGw368Wep
+DN0oPWCRjWF+9AXlfkBcN3PMLYH0uWsBoT6l6ajb5HO1HUX+hxXm3UCxRFr3YTeL
+CsVPf8KPVZz+xHJ4C7qLsitsVyHsvHokOyrJ1ZY0W7GIXT8+fwlrzuzWCTvOMs7n
+wLG0EUDUsMEbuepjv0ZBtZy+MWdkti9Rfu0Gih247HHDfX6LKwgDJAR7po1wVE9B
+SwIDAQAB
 -----END PUBLIC KEY-----";
 
-    let public_key = RsaPublicKey::from_pkcs1_pem(pem).unwrap();
+    let public_key = RsaPublicKey::from_public_key_pem(pem).unwrap();
     let mut rng = rand::thread_rng();
 
     let passenc = public_key.encrypt(&mut rng, Pkcs1v15Encrypt, pass.as_bytes()).unwrap();
