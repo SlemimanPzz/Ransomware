@@ -3,15 +3,16 @@ name = "Ransomware"
 version = "0.1.0"
 edition = "2021"
 
-
 [dependencies]
 walkdir = "2.3"
 dirs = "4.0"
 rust-crypto = "0.2"
 orion = "0.17.6"
 rand_core = { version = "0.6.4", features = ["getrandom"] }
-static_vcruntime = "2.0"
 rand = "0.8.5"
 rsa = "0.9.6"
 wallpaper = "3.2.0"
 winapi = "0.3.9"
+
+[build-dependencies]
+static_vcruntime = "2.0"
