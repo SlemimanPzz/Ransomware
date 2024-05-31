@@ -15,4 +15,6 @@ This sis a toy ransomware for Windows 10. It encrypts your files in your documen
 ## For executing
 
 - You need to run it has an administrator
-- You need to deactivate windows defenter
+- You need to deactivate windows defender
+
+# Link to [Rescuer](https://github.com/SlemimanPzz/Rescuer.git)
