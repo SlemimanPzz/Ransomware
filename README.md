@@ -1,20 +1,18 @@
 # Ransomware for Windows
 
-This sis a toy ransomware for Windows 10. It encrypts your files in your documents folder. You need the the [Rescuer](https://github.com/SlemimanPzz/Rescuer.git) for decrypting de files. It generates a random AES256 key, and then encrypt it with the public RSA key hard coded into it and stores it on the desktop. It encrypts all docx, xlsx, pdf, jpeg, jpg, txt, it can be expanded to more easily.
+This is a toy ransomware for Windows 10. It encrypts your files in your Documents folder. You need the [Rescuer](https://github.com/SlemimanPzz/Rescuer.git) for decrypting the files. It generates a random AES256 key, encrypts it with the public RSA key hard-coded into it, and stores it on the desktop. It encrypts all .docx, .xlsx, .pdf, .jpeg, .jpg, and .txt files, but it can be easily expanded to include more file types.
 
-> DON'T RUN ON YOUR MACHINE, USE A VM
+> **WARNING: DO NOT RUN THIS ON YOUR MACHINE. USE A VIRTUAL MACHINE (VM) INSTEAD.**
 
-## To build 
+## To Build
+- Download [Rust](https://www.rust-lang.org/tools/install)
+- Run `cargo build --release` to get the executable. If you're not on a Windows system, add the `--target=x86_64-pc-windows-gnu` flag.
+- The `.exe` file will be located in `target/release/Ransomware.exe` or `target/debug/Ransomware.exe` if you didn't use the `--release` flag.
 
-- Download [Rust](https://www.rust-lang.org/tools/install) 
-- Do `cargo build --release` get the executable, if you are not on a windows system add the `--target=x86_64-pc-windows-gnu` flag
-- The `.exe` will be located in `taget/release/Ransomware.exe` or in `taget/debug/Ransomware.exe` if you didn't use the `--release` flag.
+> **DO NOT run `cargo run`, especially on a Windows system, as this will encrypt all your files. Also, the private key corresponding to the public key is provided. You can change it to your own using an RSA Key pair in PKCS#8 format.**
 
-> DO NOT do `cargo run`, especially on a windows system since this will encrypt all your files. Also the private key link to the public key is provided. You can change it to your own using a RSA Key pair in PKCS#8.
-
-## For executing
-
-- You need to run it has an administrator
-- You need to deactivate windows defender
+## For Executing
+- You need to run it as an administrator.
+- You need to deactivate Windows Defender.
 
 # Link to [Rescuer](https://github.com/SlemimanPzz/Rescuer.git)
