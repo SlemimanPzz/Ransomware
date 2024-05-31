@@ -18,7 +18,7 @@ use rsa::RsaPublicKey;
 
 use walkdir::WalkDir;
 
-const IMAGE_DATA: &[u8] = include_bytes!(r"resources\backgroound.png");
+const IMAGE_DATA: &[u8] = include_bytes!(r"resources\background.jpg");
 
 
 struct CounterNonceSequence(u32);
